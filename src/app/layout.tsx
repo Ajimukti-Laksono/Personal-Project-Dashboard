@@ -41,16 +41,18 @@ export const metadata: Metadata = {
       "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE). Pantau aktivitas commit, pull request, dan status CI/CD secara langsung.",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "https://personal-project-dashboard-xi.vercel.app/og-image.jpg",
+        secureUrl: "https://personal-project-dashboard-xi.vercel.app/og-image.jpg",
         width: 1200,
-        height: 675,
+        height: 630,
         type: "image/jpeg",
         alt: "Personal Project Dashboard - Real-Time GitHub Insights & Live Activity Feed",
       },
       {
-        url: "/og-image.png",
+        url: "https://personal-project-dashboard-xi.vercel.app/og-image.png",
+        secureUrl: "https://personal-project-dashboard-xi.vercel.app/og-image.png",
         width: 1200,
-        height: 675,
+        height: 630,
         type: "image/png",
         alt: "Personal Project Dashboard - Real-Time GitHub Insights & Live Activity Feed",
       },
@@ -61,7 +63,7 @@ export const metadata: Metadata = {
     title: "Personal Project Dashboard | Real-Time GitHub Tracker",
     description:
       "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE).",
-    images: ["/og-image.jpg"],
+    images: ["https://personal-project-dashboard-xi.vercel.app/og-image.jpg"],
     creator: "@ajimukti",
   },
   robots: {

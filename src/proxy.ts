@@ -22,22 +22,43 @@ import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1. Allow static Next.js assets, icons, and public folder
+  // 1. Allow static Next.js assets, icons, robots.txt, and public files
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
     pathname.startsWith("/public") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
     pathname.endsWith(".svg") ||
     pathname.endsWith(".png") ||
     pathname.endsWith(".jpg") ||
     pathname.endsWith(".jpeg") ||
     pathname.endsWith(".webp") ||
-    pathname.endsWith(".ico")
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".txt") ||
+    pathname.endsWith(".xml")
   ) {
     return NextResponse.next();
   }
 
-  // 2. Allow explicitly public endpoints (Hybrid read-only access)
+  // 2. Pass-through for social media crawlers and search engine bots
+  const userAgent = req.headers.get("user-agent")?.toLowerCase() || "";
+  const isBot =
+    userAgent.includes("linkedinbot") ||
+    userAgent.includes("facebookexternalhit") ||
+    userAgent.includes("twitterbot") ||
+    userAgent.includes("slackbot") ||
+    userAgent.includes("whatsapp") ||
+    userAgent.includes("telegrambot") ||
+    userAgent.includes("googlebot") ||
+    userAgent.includes("bingbot") ||
+    userAgent.includes("duckduckbot");
+
+  if (isBot && !pathname.startsWith("/api/sync") && !pathname.startsWith("/api/webhook/history")) {
+    return NextResponse.next();
+  }
+
+  // 3. Allow explicitly public endpoints (Hybrid read-only access)
   const isPublicPage = pathname === "/" || pathname === "/login";
   const isPublicApi =
     pathname === "/api/auth/login" ||
