@@ -26,6 +26,8 @@ const envSchema = z.object({
     .string()
     .url("PUBLIC_BASE_URL must be a valid URL.")
     .default("http://localhost:3000"),
+  TURSO_DATABASE_URL: z.string().optional(),
+  TURSO_AUTH_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

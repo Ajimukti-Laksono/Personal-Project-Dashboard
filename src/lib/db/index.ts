@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
 
 declare global {
   var __prisma: PrismaClient | undefined;
@@ -6,24 +7,44 @@ declare global {
 }
 
 /**
- * Global singleton PrismaClient to prevent connection leaks during Next.js hot reload.
+ * Creates PrismaClient using Turso LibSQL adapter in production/cloud if configured,
+ * or standard local SQLite if running locally without Turso.
  */
-export const prisma =
-  globalThis.__prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (tursoUrl) {
+    const adapter = new PrismaLibSQL({
+      url: tursoUrl,
+      authToken: tursoAuthToken,
+    });
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    });
+  }
+
+  return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
+}
+
+/**
+ * Global singleton PrismaClient to prevent connection leaks during Next.js hot reload.
+ */
+export const prisma = globalThis.__prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma;
 }
 
 /**
- * Activates WAL (Write-Ahead Logging) mode and foreign keys for SQLite.
- * WAL mode enables concurrent reads while writing and significantly improves performance.
+ * Activates WAL (Write-Ahead Logging) mode and foreign keys for local SQLite.
+ * In Turso cloud mode, this is skipped as Turso manages concurrency automatically.
  */
 export async function enableWalMode(client: PrismaClient = prisma): Promise<void> {
-  if (globalThis.__prismaWalEnabled) {
+  if (globalThis.__prismaWalEnabled || process.env.TURSO_DATABASE_URL) {
     return;
   }
 
