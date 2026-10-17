@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   // Standalone output for Docker deployment (not Vercel serverless)
   output: "standalone",
 
+  serverExternalPackages: [
+    "@libsql/client",
+    "libsql",
+    "@prisma/client",
+    "@prisma/adapter-libsql",
+  ],
+
   images: {
     remotePatterns: [
       {
@@ -11,6 +18,14 @@ const nextConfig: NextConfig = {
         hostname: "avatars.githubusercontent.com",
       },
     ],
+  },
+
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.md$/,
+      type: "asset/source",
+    });
+    return config;
   },
 
 

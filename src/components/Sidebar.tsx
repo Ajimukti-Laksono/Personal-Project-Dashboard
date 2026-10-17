@@ -27,6 +27,8 @@ interface SidebarProps {
   onClose: () => void;
   isAdmin?: boolean;
   onLogout?: () => void;
+  onRequestAdminLogin?: () => void;
+  onRequestLogout?: () => void;
 }
 
 export function Sidebar({
@@ -39,6 +41,8 @@ export function Sidebar({
   onClose,
   isAdmin = false,
   onLogout,
+  onRequestAdminLogin,
+  onRequestLogout,
 }: SidebarProps) {
   const router = useRouter();
 
@@ -189,19 +193,39 @@ export function Sidebar({
               )}
               <div className="min-w-0">
                 <p className="text-xs font-bold truncate text-[var(--text-primary)]">{userName}</p>
-                <p className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  GitHub Pro
+                <p
+                  className={`text-[10px] font-medium flex items-center gap-1 ${
+                    isAdmin
+                      ? "text-[#5c62ec] dark:text-[#8b91ff] font-semibold"
+                      : "text-emerald-500"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full inline-block ${
+                      isAdmin ? "bg-[#5c62ec] animate-pulse" : "bg-emerald-500"
+                    }`}
+                  />
+                  {isAdmin ? "Mode Admin Aktif" : "GitHub Pro"}
                 </p>
               </div>
             </div>
 
             <button
+              type="button"
+              id="sidebar-admin-btn"
               onClick={() => {
                 if (isAdmin) {
-                  handleLogout();
+                  if (onRequestLogout) {
+                    onRequestLogout();
+                  } else {
+                    handleLogout();
+                  }
                 } else {
-                  router.push("/login?from=/");
+                  if (onRequestAdminLogin) {
+                    onRequestAdminLogin();
+                  } else {
+                    router.push("/login?from=/");
+                  }
                 }
               }}
               className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[#5c62ec] hover:bg-[#5c62ec]/10 transition-colors shrink-0 cursor-pointer"

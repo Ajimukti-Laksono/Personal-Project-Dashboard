@@ -12,6 +12,9 @@ import {
   VolumeX,
   Bell,
   BellOff,
+  Shield,
+  ShieldCheck,
+  LogOut,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -29,6 +32,9 @@ interface NavbarProps {
   onToggleSound: () => void;
   notificationsEnabled: boolean;
   onRequestNotifications: () => void;
+  isAdmin?: boolean;
+  onRequestAdminLogin?: () => void;
+  onRequestLogout?: () => void;
 }
 
 export function Navbar({
@@ -46,6 +52,9 @@ export function Navbar({
   onToggleSound,
   notificationsEnabled,
   onRequestNotifications,
+  isAdmin = false,
+  onRequestAdminLogin,
+  onRequestLogout,
 }: NavbarProps) {
   const isDark = mounted ? theme === "dark" : true;
   const isNotificationsActive = mounted ? notificationsEnabled : false;
@@ -85,8 +94,8 @@ export function Navbar({
           </div>
         </div>
 
-        {/* Center / Right: Day/Night Switch (FieldPro style) + SSE status + Sync Button */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Center / Right: Day/Night Switch (FieldPro style) + Mode Admin + SSE status + Sync Button */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Exact FieldPro Style Day Mode / Night Mode Switch */}
           <div
             className="mode-toggle-track select-none flex items-center"
@@ -122,6 +131,48 @@ export function Navbar({
               <span className="hidden md:inline">Night Mode</span>
             </button>
           </div>
+
+          {/* Fitur Mode Admin disamping Fitur Theme */}
+          <button
+            type="button"
+            id="navbar-admin-mode-btn"
+            onClick={() => {
+              if (isAdmin) {
+                onRequestLogout?.();
+              } else {
+                onRequestAdminLogin?.();
+              }
+            }}
+            className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-xs select-none ${
+              isAdmin
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-500"
+                : "bg-[var(--bg-card)] border-[var(--border-main)] text-[var(--text-secondary)] hover:text-[#5c62ec] hover:border-[#5c62ec]/40 hover:bg-[#5c62ec]/5"
+            }`}
+            title={
+              isAdmin
+                ? "Mode Admin Aktif • Klik untuk keluar"
+                : "Beralih ke Mode Admin (Perlu Konfirmasi)"
+            }
+            aria-label={isAdmin ? "Mode Admin Aktif" : "Masuk Mode Admin"}
+          >
+            {isAdmin ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <ShieldCheck className="w-3.5 h-3.5 group-hover:hidden" />
+                <LogOut className="w-3.5 h-3.5 hidden group-hover:inline text-rose-500" />
+                <span className="hidden md:inline group-hover:hidden">Admin Aktif</span>
+                <span className="hidden md:group-hover:inline text-rose-500">Keluar</span>
+              </>
+            ) : (
+              <>
+                <Shield className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#5c62ec] transition-colors" />
+                <span className="hidden md:inline">Mode Admin</span>
+              </>
+            )}
+          </button>
 
           {/* Webhook Diagnostics Button */}
           <button

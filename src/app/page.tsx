@@ -17,6 +17,8 @@ import {
   WebhookModal,
   RepoItem,
   CircuitGridBackground,
+  AdminConfirmModal,
+  AdminLogoutModal,
 } from "@/components";
 import { ActivityItem } from "@/app/api/dashboard/route";
 import {
@@ -58,6 +60,11 @@ export default function DashboardPage() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [customNotificationAllowed, setCustomNotificationAllowed] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminConfirmOpen, setIsAdminConfirmOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [adminTargetFeature, setAdminTargetFeature] = useState<string | undefined>(undefined);
+  const [adminRedirectUrl, setAdminRedirectUrl] = useState<string>("/");
 
   // Theme & mounting state
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -103,14 +110,38 @@ export default function DashboardPage() {
       .catch(() => setIsAdmin(false));
   }, []);
 
-  const handleLogout = async () => {
+  const handleRequestAdminLogin = (featureName?: string, redirectPath = "/") => {
+    setAdminTargetFeature(featureName);
+    setAdminRedirectUrl(redirectPath);
+    setIsAdminConfirmOpen(true);
+  };
+
+  const handleConfirmAdminLogin = () => {
+    setIsAdminConfirmOpen(false);
+    showToast("Mengarahkan ke halaman login Administrator...", "info");
+    router.push(`/login?from=${encodeURIComponent(adminRedirectUrl)}`);
+  };
+
+  const handleRequestLogout = () => {
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setIsAdmin(false);
       showToast("Berhasil keluar dari mode Admin.", "info");
     } catch {
       showToast("Gagal logout.", "info");
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutConfirmOpen(false);
     }
+  };
+
+  const handleLogout = async () => {
+    handleRequestLogout();
   };
 
   // Global keyboard shortcut: 'w' to toggle Webhook Diagnostics Modal (Admin only)
@@ -122,7 +153,7 @@ export default function DashboardPage() {
         document.activeElement?.tagName !== "TEXTAREA"
       ) {
         if (!isAdmin) {
-          router.push("/login?from=/");
+          handleRequestAdminLogin("Diagnostik Webhook");
         } else {
           setIsWebhookModalOpen((prev) => !prev);
         }
@@ -283,7 +314,7 @@ export default function DashboardPage() {
   // Manual sync trigger
   const handleSync = async () => {
     if (!isAdmin) {
-      router.push("/login?from=/");
+      handleRequestAdminLogin("Sinkronisasi GitHub");
       return;
     }
 
@@ -297,7 +328,7 @@ export default function DashboardPage() {
       } else {
         if (res.status === 401) {
           setIsAdmin(false);
-          router.push("/login?from=/");
+          handleRequestAdminLogin("Sinkronisasi GitHub");
           showToast("Sesi admin telah berakhir. Silakan login kembali.", "info");
         } else {
           showToast(`Sync gagal: ${json.error || "Terjadi kesalahan"}`, "info");
@@ -312,7 +343,7 @@ export default function DashboardPage() {
 
   const handleOpenWebhookModal = () => {
     if (!isAdmin) {
-      router.push("/login?from=/");
+      handleRequestAdminLogin("Diagnostik Webhook");
       return;
     }
     setIsWebhookModalOpen(true);
@@ -321,7 +352,7 @@ export default function DashboardPage() {
   // Toggle repository pin status
   const handleTogglePin = async (repoId: string, currentPinned: boolean) => {
     if (!isAdmin) {
-      router.push("/login?from=/");
+      handleRequestAdminLogin("Sematkan Repositori");
       return;
     }
 
@@ -424,7 +455,9 @@ export default function DashboardPage() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isAdmin={isAdmin}
-        onLogout={handleLogout}
+        onLogout={handleRequestLogout}
+        onRequestAdminLogin={() => handleRequestAdminLogin()}
+        onRequestLogout={handleRequestLogout}
       />
 
       {/* Main Content Area (Offset for floating sidebar on desktop) */}
@@ -445,6 +478,9 @@ export default function DashboardPage() {
           onToggleSound={toggleSound}
           notificationsEnabled={notificationsEnabled}
           onRequestNotifications={handleRequestNotifications}
+          isAdmin={isAdmin}
+          onRequestAdminLogin={() => handleRequestAdminLogin()}
+          onRequestLogout={handleRequestLogout}
         />
 
         {/* Dashboard Main View */}
@@ -509,6 +545,22 @@ export default function DashboardPage() {
           isOpen={isWebhookModalOpen}
           onClose={() => setIsWebhookModalOpen(false)}
           onEventSimulated={fetchDashboardData}
+        />
+
+        {/* Admin Login Confirmation Modal (Notifikasi & Konfirmasi sebelum ke /login) */}
+        <AdminConfirmModal
+          isOpen={isAdminConfirmOpen}
+          onClose={() => setIsAdminConfirmOpen(false)}
+          onConfirm={handleConfirmAdminLogin}
+          targetFeature={adminTargetFeature}
+        />
+
+        {/* Admin Logout Confirmation Modal */}
+        <AdminLogoutModal
+          isOpen={isLogoutConfirmOpen}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+          onConfirm={handleConfirmLogout}
+          isLoggingOut={isLoggingOut}
         />
 
         {/* Footer */}

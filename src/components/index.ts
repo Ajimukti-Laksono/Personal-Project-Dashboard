@@ -9,3 +9,4 @@ export * from "./RepoDetailModal";
 export * from "./WebhookModal";
 export * from "./Logo";
 export * from "./CircuitGridBackground";
+export * from "./AdminConfirmModal";
