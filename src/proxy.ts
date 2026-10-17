@@ -29,6 +29,9 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/public") ||
     pathname.endsWith(".svg") ||
     pathname.endsWith(".png") ||
+    pathname.endsWith(".jpg") ||
+    pathname.endsWith(".jpeg") ||
+    pathname.endsWith(".webp") ||
     pathname.endsWith(".ico")
   ) {
     return NextResponse.next();

@@ -13,9 +13,68 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Personal Project Dashboard | Real-Time GitHub Tracker",
+  metadataBase: new URL("https://personal-project-dashboard-xi.vercel.app"),
+  title: {
+    default: "Personal Project Dashboard | Real-Time GitHub Tracker",
+    template: "%s | Personal Project Dashboard",
+  },
   description:
-    "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE).",
+    "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE). Pantau aktivitas commit, pull request, dan status CI/CD secara langsung.",
+  keywords: [
+    "GitHub Dashboard",
+    "Real-Time GitHub Tracker",
+    "Portfolio Dashboard",
+    "Ajimukti Laksono",
+    "Commit Heatmap",
+    "Developer Dashboard",
+    "Next.js",
+  ],
+  authors: [{ name: "Ajimukti Laksono", url: "https://github.com/Ajimukti-Laksono" }],
+  creator: "Ajimukti Laksono",
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: "https://personal-project-dashboard-xi.vercel.app",
+    siteName: "Personal Project Dashboard",
+    title: "Personal Project Dashboard | Real-Time GitHub Tracker",
+    description:
+      "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE). Pantau aktivitas commit, pull request, dan status CI/CD secara langsung.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 675,
+        type: "image/jpeg",
+        alt: "Personal Project Dashboard - Real-Time GitHub Insights & Live Activity Feed",
+      },
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 675,
+        type: "image/png",
+        alt: "Personal Project Dashboard - Real-Time GitHub Insights & Live Activity Feed",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Personal Project Dashboard | Real-Time GitHub Tracker",
+    description:
+      "Dashboard personal terhubung langsung ke GitHub secara real-time via Webhook dan Server-Sent Events (SSE).",
+    images: ["/og-image.jpg"],
+    creator: "@ajimukti",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
