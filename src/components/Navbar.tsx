@@ -8,10 +8,6 @@ import {
   Moon,
   Menu,
   Radio,
-  Volume2,
-  VolumeX,
-  Bell,
-  BellOff,
   Shield,
   ShieldCheck,
   LogOut,
@@ -28,10 +24,6 @@ interface NavbarProps {
   onOpenSidebar: () => void;
   mounted?: boolean;
   onOpenWebhookModal: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
-  notificationsEnabled: boolean;
-  onRequestNotifications: () => void;
   isAdmin?: boolean;
   onRequestAdminLogin?: () => void;
   onRequestLogout?: () => void;
@@ -48,16 +40,11 @@ export function Navbar({
   onOpenSidebar,
   mounted = false,
   onOpenWebhookModal,
-  soundEnabled,
-  onToggleSound,
-  notificationsEnabled,
-  onRequestNotifications,
   isAdmin = false,
   onRequestAdminLogin,
   onRequestLogout,
 }: NavbarProps) {
   const isDark = mounted ? theme === "dark" : true;
-  const isNotificationsActive = mounted ? notificationsEnabled : false;
 
   const handleSelectTheme = (mode: "dark" | "light") => {
     if (onSetTheme) {
@@ -182,50 +169,6 @@ export function Navbar({
           >
             <Radio className="w-3.5 h-3.5 text-[#5c62ec]" />
             <span className="hidden md:inline">Webhook</span>
-          </button>
-
-          {/* Sound Toggle Button */}
-          <button
-            onClick={onToggleSound}
-            className={`p-2 rounded-full border text-xs font-semibold transition-all cursor-pointer ${
-              soundEnabled
-                ? "bg-indigo-500/10 border-indigo-500/30 text-[#5c62ec]"
-                : "bg-[var(--bg-card)] border-[var(--border-main)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-            title={
-              soundEnabled
-                ? "Suara Notifikasi: Aktif (Klik untuk Matikan)"
-                : "Suara Notifikasi: Mati (Klik untuk Nyalakan)"
-            }
-            aria-label="Toggle Sound"
-          >
-            {soundEnabled ? (
-              <Volume2 className="w-3.5 h-3.5" />
-            ) : (
-              <VolumeX className="w-3.5 h-3.5" />
-            )}
-          </button>
-
-          {/* Desktop Push Notification Toggle Button */}
-          <button
-            onClick={onRequestNotifications}
-            className={`p-2 rounded-full border text-xs font-semibold transition-all cursor-pointer ${
-              isNotificationsActive
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                : "bg-[var(--bg-card)] border-[var(--border-main)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-            title={
-              isNotificationsActive
-                ? "Notifikasi Desktop Browser: Aktif"
-                : "Nyalakan Notifikasi Desktop Browser"
-            }
-            aria-label="Toggle Desktop Notifications"
-          >
-            {isNotificationsActive ? (
-              <Bell className="w-3.5 h-3.5" />
-            ) : (
-              <BellOff className="w-3.5 h-3.5" />
-            )}
           </button>
 
           {/* Connection Status Pill */}

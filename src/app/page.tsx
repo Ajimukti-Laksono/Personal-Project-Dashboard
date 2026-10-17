@@ -21,11 +21,6 @@ import {
   AdminLogoutModal,
 } from "@/components";
 import { ActivityItem } from "@/app/api/dashboard/route";
-import {
-  playNotificationSound,
-  sendDesktopNotification,
-  requestNotificationPermission,
-} from "@/lib/utils/notifications";
 import { BellRing, X } from "lucide-react";
 
 interface DashboardData {
@@ -57,8 +52,6 @@ export default function DashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<NavSection>("overview");
   const [toast, setToast] = useState<{ message: string; type: "info" | "success" } | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [customNotificationAllowed, setCustomNotificationAllowed] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminConfirmOpen, setIsAdminConfirmOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
@@ -89,16 +82,6 @@ export default function DashboardPage() {
   const toggleTheme = () => {
     handleSetTheme(theme === "dark" ? "light" : "dark");
   };
-
-  // Derive notificationsEnabled dynamically (guarded by mounted state to prevent SSR hydration mismatch)
-  const notificationsEnabled = useMemo(() => {
-    if (!mounted) return false;
-    if (customNotificationAllowed !== null) return customNotificationAllowed;
-    if (typeof window !== "undefined" && "Notification" in window) {
-      return Notification.permission === "granted";
-    }
-    return false;
-  }, [mounted, customNotificationAllowed]);
 
   // Check admin session status on mount
   useEffect(() => {
@@ -163,32 +146,6 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isAdmin, router]);
 
-  const toggleSound = () => {
-    setSoundEnabled((prev) => {
-      const next = !prev;
-      if (next) playNotificationSound();
-      return next;
-    });
-  };
-
-  const handleRequestNotifications = async () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      showToast("Browser Anda tidak mendukung Web Notification.", "info");
-      return;
-    }
-    const permission = await requestNotificationPermission();
-    if (permission === "granted") {
-      setCustomNotificationAllowed(true);
-      showToast("Notifikasi desktop diaktifkan!", "success");
-      sendDesktopNotification("Personal Project Dashboard", {
-        body: "Notifikasi desktop telah aktif untuk memantau aktivitas GitHub real-time.",
-      });
-    } else {
-      setCustomNotificationAllowed(false);
-      showToast("Izin notifikasi tidak diberikan oleh browser.", "info");
-    }
-  };
-
   const showToast = (message: string, type: "info" | "success" = "info") => {
     setToast({ message, type });
     setTimeout(() => {
@@ -236,20 +193,11 @@ export default function DashboardPage() {
     (type: RealtimeEventType, payload: unknown) => {
       const eventData = payload as Record<string, unknown>;
 
-      // Play audio chime if enabled
-      if (soundEnabled) {
-        playNotificationSound();
-      }
-
       if (type === "commit.new") {
         showToast(
           `Commit baru di ${eventData.repoFullName}: "${String(eventData.message || "").slice(0, 45)}"`,
           "success",
         );
-
-        sendDesktopNotification(`🚀 Commit Baru: ${eventData.repoFullName}`, {
-          body: `${eventData.authorName}: ${String(eventData.message || "").slice(0, 80)}`,
-        });
 
         const newActivity: ActivityItem = {
           id: `commit-${eventData.sha}`,
@@ -282,27 +230,18 @@ export default function DashboardPage() {
         });
       } else if (type === "pr.updated") {
         showToast(`Pull Request diupdate: #${eventData.number} ${eventData.title}`);
-        sendDesktopNotification(`🔀 Pull Request: #${eventData.number}`, {
-          body: `${eventData.title} (${eventData.state})`,
-        });
         fetchDashboardData();
       } else if (type === "issue.updated") {
         showToast(`Issue diupdate: #${eventData.number} ${eventData.title}`);
-        sendDesktopNotification(`⚠️ Issue: #${eventData.number}`, {
-          body: `${eventData.title} (${eventData.state})`,
-        });
         fetchDashboardData();
       } else if (type === "workflow.updated") {
         showToast(`GitHub Actions selesai: ${eventData.name} (${eventData.status})`);
-        sendDesktopNotification(`⚙️ GitHub Actions: ${eventData.name}`, {
-          body: `Status: ${eventData.status} ${eventData.conclusion ? `(${eventData.conclusion})` : ""}`,
-        });
         fetchDashboardData();
       } else if (type === "repo.updated") {
         fetchDashboardData();
       }
     },
-    [fetchDashboardData, soundEnabled],
+    [fetchDashboardData],
   );
 
   // SSE stream connection with auto-reconnect & auto-refetch
@@ -474,10 +413,6 @@ export default function DashboardPage() {
           onOpenSidebar={() => setIsSidebarOpen(true)}
           mounted={mounted}
           onOpenWebhookModal={handleOpenWebhookModal}
-          soundEnabled={soundEnabled}
-          onToggleSound={toggleSound}
-          notificationsEnabled={notificationsEnabled}
-          onRequestNotifications={handleRequestNotifications}
           isAdmin={isAdmin}
           onRequestAdminLogin={() => handleRequestAdminLogin()}
           onRequestLogout={handleRequestLogout}
