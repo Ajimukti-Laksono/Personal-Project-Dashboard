@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  turbopack: {},
+
   webpack: (config) => {
     config.module.rules.push({
       test: /\.md$/,
