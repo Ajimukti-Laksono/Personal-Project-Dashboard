@@ -7,6 +7,7 @@ import {
   Calendar,
   BarChart3,
   LogOut,
+  LogIn,
   X,
   User,
 } from "lucide-react";
@@ -24,6 +25,8 @@ interface SidebarProps {
   userAvatar?: string | null;
   isOpen: boolean;
   onClose: () => void;
+  isAdmin?: boolean;
+  onLogout?: () => void;
 }
 
 export function Sidebar({
@@ -34,13 +37,19 @@ export function Sidebar({
   userAvatar,
   isOpen,
   onClose,
+  isAdmin = false,
+  onLogout,
 }: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+      return;
+    }
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
+      router.push("/");
       router.refresh();
     } catch {
       // ignore
@@ -188,11 +197,21 @@ export function Sidebar({
             </div>
 
             <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer"
-              title="Keluar dari Dashboard"
+              onClick={() => {
+                if (isAdmin) {
+                  handleLogout();
+                } else {
+                  router.push("/login?from=/");
+                }
+              }}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[#5c62ec] hover:bg-[#5c62ec]/10 transition-colors shrink-0 cursor-pointer"
+              title={isAdmin ? "Keluar dari Mode Admin" : "Masuk ke Mode Admin"}
             >
-              <LogOut className="w-4 h-4" />
+              {isAdmin ? (
+                <LogOut className="w-4 h-4 text-rose-500" />
+              ) : (
+                <LogIn className="w-4 h-4 text-[var(--text-muted)]" />
+              )}
             </button>
           </div>
         </div>

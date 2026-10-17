@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -83,6 +84,17 @@ function LoginForm() {
             "0 35px 85px -15px rgba(0, 0, 0, 0.8), inset 0 1.5px 2px rgba(255, 255, 255, 0.32), inset 0 -1px 1px rgba(255, 255, 255, 0.05)",
         }}
       >
+        {/* Tombol Kembali ke Dashboard jika batal login */}
+        <button
+          type="button"
+          onClick={() => router.push(from && from !== "/login" ? from : "/")}
+          className="group absolute top-5 left-5 sm:top-6 sm:left-6 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 border border-white/15 backdrop-blur-md transition-all cursor-pointer shadow-sm z-20"
+          title="Kembali ke Dashboard"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>Kembali</span>
+        </button>
+
         {/* Header & 3D Hexagon Logo */}
         <div className="flex flex-col items-center text-center mb-8">
           {/* Glowing 3D Hexagon Badge Container */}

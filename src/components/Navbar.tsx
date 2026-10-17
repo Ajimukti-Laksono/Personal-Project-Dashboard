@@ -12,9 +12,6 @@ import {
   VolumeX,
   Bell,
   BellOff,
-  ShieldCheck,
-  LogOut,
-  KeyRound,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -32,9 +29,6 @@ interface NavbarProps {
   onToggleSound: () => void;
   notificationsEnabled: boolean;
   onRequestNotifications: () => void;
-  isAdmin?: boolean;
-  onOpenAdminLogin?: () => void;
-  onLogout?: () => void;
 }
 
 export function Navbar({
@@ -52,9 +46,6 @@ export function Navbar({
   onToggleSound,
   notificationsEnabled,
   onRequestNotifications,
-  isAdmin = false,
-  onOpenAdminLogin,
-  onLogout,
 }: NavbarProps) {
   const isDark = mounted ? theme === "dark" : true;
   const isNotificationsActive = mounted ? notificationsEnabled : false;
@@ -132,52 +123,11 @@ export function Navbar({
             </button>
           </div>
 
-          {/* Admin Status Badge or Login CTA */}
-          {isAdmin ? (
-            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full pl-2.5 pr-1.5 py-1">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Admin Mode</span>
-              </span>
-              {onLogout && (
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="p-1 rounded-full text-emerald-500/70 hover:text-rose-500 hover:bg-rose-500/15 transition-colors cursor-pointer"
-                  title="Keluar dari Admin Mode"
-                  aria-label="Logout Admin"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenAdminLogin}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[#5c62ec]/40 transition-all cursor-pointer shadow-xs"
-              title="Login Admin untuk Sinkronisasi & Konfigurasi"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-amber-500" />
-              <span className="hidden sm:inline">Admin Login</span>
-            </button>
-          )}
-
           {/* Webhook Diagnostics Button */}
           <button
-            onClick={() => {
-              if (isAdmin) {
-                onOpenWebhookModal();
-              } else if (onOpenAdminLogin) {
-                onOpenAdminLogin();
-              }
-            }}
+            onClick={onOpenWebhookModal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-[#5c62ec] hover:border-[#5c62ec]/30 transition-all cursor-pointer shadow-xs"
-            title={
-              isAdmin
-                ? "Buka Diagnostik Webhook GitHub & Simulator"
-                : "Diagnostik Webhook (Memerlukan Admin Login)"
-            }
+            title="Buka Diagnostik Webhook GitHub & Simulator"
           >
             <Radio className="w-3.5 h-3.5 text-[#5c62ec]" />
             <span className="hidden md:inline">Webhook</span>
@@ -254,27 +204,15 @@ export function Navbar({
             <span>{status === "Live" ? "Live SSE" : status}</span>
           </div>
 
-          {/* Sync Button (Primary CTA Button) */}
+          {/* Sync Button */}
           <button
-            onClick={() => {
-              if (isAdmin) {
-                onSync();
-              } else if (onOpenAdminLogin) {
-                onOpenAdminLogin();
-              }
-            }}
+            onClick={onSync}
             disabled={isSyncing}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#5c62ec] hover:bg-[#4e53db] text-white transition-all shadow-md shadow-[#5c62ec]/30 disabled:opacity-50 cursor-pointer shrink-0"
-            title={
-              isAdmin
-                ? "Sinkronisasi data repository dari GitHub API"
-                : "Sync GitHub (Memerlukan Admin Login)"
-            }
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#5c62ec] hover:bg-[#4e53db] text-white transition-all shadow-md shadow-[#5c62ec]/30 disabled:opacity-50 cursor-pointer shrink-0"
+            title={isSyncing ? "Menyinkronkan..." : "Sinkronisasi Data GitHub"}
+            aria-label="Sinkronisasi Data GitHub"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-            <span className="hidden xs:inline">
-              {isSyncing ? "Menyinkronkan..." : "Sync Sekarang"}
-            </span>
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>

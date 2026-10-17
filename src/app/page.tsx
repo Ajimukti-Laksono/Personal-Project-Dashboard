@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useEventStream } from "@/lib/realtime/useEventStream";
 import { RealtimeEventType } from "@/lib/realtime";
 import {
@@ -14,7 +15,6 @@ import {
   RepoList,
   RepoDetailModal,
   WebhookModal,
-  AdminLoginModal,
   RepoItem,
   CircuitGridBackground,
 } from "@/components";
@@ -46,6 +46,7 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -57,7 +58,6 @@ export default function DashboardPage() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [customNotificationAllowed, setCustomNotificationAllowed] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
 
   // Theme & mounting state
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         document.activeElement?.tagName !== "TEXTAREA"
       ) {
         if (!isAdmin) {
-          setIsAdminLoginModalOpen(true);
+          router.push("/login?from=/");
         } else {
           setIsWebhookModalOpen((prev) => !prev);
         }
@@ -130,7 +130,7 @@ export default function DashboardPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAdmin]);
+  }, [isAdmin, router]);
 
   const toggleSound = () => {
     setSoundEnabled((prev) => {
@@ -283,7 +283,7 @@ export default function DashboardPage() {
   // Manual sync trigger
   const handleSync = async () => {
     if (!isAdmin) {
-      setIsAdminLoginModalOpen(true);
+      router.push("/login?from=/");
       return;
     }
 
@@ -297,7 +297,7 @@ export default function DashboardPage() {
       } else {
         if (res.status === 401) {
           setIsAdmin(false);
-          setIsAdminLoginModalOpen(true);
+          router.push("/login?from=/");
           showToast("Sesi admin telah berakhir. Silakan login kembali.", "info");
         } else {
           showToast(`Sync gagal: ${json.error || "Terjadi kesalahan"}`, "info");
@@ -310,10 +310,18 @@ export default function DashboardPage() {
     }
   };
 
+  const handleOpenWebhookModal = () => {
+    if (!isAdmin) {
+      router.push("/login?from=/");
+      return;
+    }
+    setIsWebhookModalOpen(true);
+  };
+
   // Toggle repository pin status
   const handleTogglePin = async (repoId: string, currentPinned: boolean) => {
     if (!isAdmin) {
-      setIsAdminLoginModalOpen(true);
+      router.push("/login?from=/");
       return;
     }
 
@@ -415,6 +423,8 @@ export default function DashboardPage() {
         userAvatar={userProfile.avatar}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        isAdmin={isAdmin}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area (Offset for floating sidebar on desktop) */}
@@ -430,14 +440,11 @@ export default function DashboardPage() {
           onSetTheme={handleSetTheme}
           onOpenSidebar={() => setIsSidebarOpen(true)}
           mounted={mounted}
-          onOpenWebhookModal={() => setIsWebhookModalOpen(true)}
+          onOpenWebhookModal={handleOpenWebhookModal}
           soundEnabled={soundEnabled}
           onToggleSound={toggleSound}
           notificationsEnabled={notificationsEnabled}
           onRequestNotifications={handleRequestNotifications}
-          isAdmin={isAdmin}
-          onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
-          onLogout={handleLogout}
         />
 
         {/* Dashboard Main View */}
@@ -502,16 +509,6 @@ export default function DashboardPage() {
           isOpen={isWebhookModalOpen}
           onClose={() => setIsWebhookModalOpen(false)}
           onEventSimulated={fetchDashboardData}
-        />
-
-        {/* Admin Login Modal (Hybrid Mode) */}
-        <AdminLoginModal
-          isOpen={isAdminLoginModalOpen}
-          onClose={() => setIsAdminLoginModalOpen(false)}
-          onSuccess={() => {
-            setIsAdmin(true);
-            showToast("Mode Admin aktif! Akses kontrol penuh terbuka.", "success");
-          }}
         />
 
         {/* Footer */}
