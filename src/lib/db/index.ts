@@ -11,8 +11,8 @@ declare global {
  * or standard local SQLite if running locally without Turso.
  */
 function createPrismaClient(): PrismaClient {
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+  const tursoUrl = process.env.TURSO_DATABASE_URL?.trim();
+  const tursoAuthToken = process.env.TURSO_AUTH_TOKEN?.trim();
 
   if (tursoUrl) {
     const adapter = new PrismaLibSQL({
