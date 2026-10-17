@@ -1,69 +1,524 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEventStream } from "@/lib/realtime/useEventStream";
+import { RealtimeEventType } from "@/lib/realtime";
+import {
+  Sidebar,
+  NavSection,
+  Navbar,
+  SummaryCards,
+  LiveActivityFeed,
+  CommitHeatmap,
+  ChartsSection,
+  RepoList,
+  RepoDetailModal,
+  WebhookModal,
+  AdminLoginModal,
+  RepoItem,
+  CircuitGridBackground,
+} from "@/components";
+import { ActivityItem } from "@/app/api/dashboard/route";
+import {
+  playNotificationSound,
+  sendDesktopNotification,
+  requestNotificationPermission,
+} from "@/lib/utils/notifications";
+import { BellRing, X } from "lucide-react";
+
+interface DashboardData {
+  summary: {
+    totalRepos: number;
+    commits7Days: number;
+    openPrs: number;
+    openIssues: number;
+    latestCiStatus: string;
+    lastSyncTime: string | null;
+    syncStatus: string;
+  };
+  activityFeed: ActivityItem[];
+  heatmap: Record<string, number>;
+  charts: {
+    dailyCommits: Array<{ date: string; label: string; commits: number }>;
+    languages: Array<{ name: string; count: number; percentage: number }>;
+  };
+  repositories: RepoItem[];
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<RepoItem | null>(null);
+  const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<NavSection>("overview");
+  const [toast, setToast] = useState<{ message: string; type: "info" | "success" } | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [customNotificationAllowed, setCustomNotificationAllowed] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState(false);
+
+  // Theme & mounting state
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("theme");
+    const initial = saved === "light" ? "light" : "dark";
+    setTheme(initial);
+    document.documentElement.classList.toggle("dark", initial === "dark");
+  }, []);
+
+  const handleSetTheme = (newTheme: "dark" | "light") => {
+    setTheme(newTheme);
+    try {
+      localStorage.setItem("theme", newTheme);
+      document.documentElement.classList.toggle("dark", newTheme === "dark");
+    } catch {}
+  };
+
+  const toggleTheme = () => {
+    handleSetTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  // Derive notificationsEnabled dynamically (guarded by mounted state to prevent SSR hydration mismatch)
+  const notificationsEnabled = useMemo(() => {
+    if (!mounted) return false;
+    if (customNotificationAllowed !== null) return customNotificationAllowed;
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return Notification.permission === "granted";
+    }
+    return false;
+  }, [mounted, customNotificationAllowed]);
+
+  // Check admin session status on mount
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { authenticated?: boolean } | null) => {
+        setIsAdmin(Boolean(data?.authenticated));
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setIsAdmin(false);
+      showToast("Berhasil keluar dari mode Admin.", "info");
+    } catch {
+      showToast("Gagal logout.", "info");
+    }
+  };
+
+  // Global keyboard shortcut: 'w' to toggle Webhook Diagnostics Modal (Admin only)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.key === "w" || e.key === "W") &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        if (!isAdmin) {
+          setIsAdminLoginModalOpen(true);
+        } else {
+          setIsWebhookModalOpen((prev) => !prev);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAdmin]);
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      if (next) playNotificationSound();
+      return next;
+    });
+  };
+
+  const handleRequestNotifications = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      showToast("Browser Anda tidak mendukung Web Notification.", "info");
+      return;
+    }
+    const permission = await requestNotificationPermission();
+    if (permission === "granted") {
+      setCustomNotificationAllowed(true);
+      showToast("Notifikasi desktop diaktifkan!", "success");
+      sendDesktopNotification("Personal Project Dashboard", {
+        body: "Notifikasi desktop telah aktif untuk memantau aktivitas GitHub real-time.",
+      });
+    } else {
+      setCustomNotificationAllowed(false);
+      showToast("Izin notifikasi tidak diberikan oleh browser.", "info");
+    }
+  };
+
+  const showToast = (message: string, type: "info" | "success" = "info") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  };
+
+  // Fetch dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dashboard", { cache: "no-store" });
+      if (res.ok) {
+        const json = (await res.json()) as DashboardData;
+        setData(json);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/dashboard", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: DashboardData | null) => {
+        if (isMounted && json) {
+          setData(json);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Initial load error:", err);
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Handle incoming real-time SSE events
+  const handleRealtimeEvent = useCallback(
+    (type: RealtimeEventType, payload: unknown) => {
+      const eventData = payload as Record<string, unknown>;
+
+      // Play audio chime if enabled
+      if (soundEnabled) {
+        playNotificationSound();
+      }
+
+      if (type === "commit.new") {
+        showToast(
+          `Commit baru di ${eventData.repoFullName}: "${String(eventData.message || "").slice(0, 45)}"`,
+          "success",
+        );
+
+        sendDesktopNotification(`🚀 Commit Baru: ${eventData.repoFullName}`, {
+          body: `${eventData.authorName}: ${String(eventData.message || "").slice(0, 80)}`,
+        });
+
+        const newActivity: ActivityItem = {
+          id: `commit-${eventData.sha}`,
+          type: "commit",
+          repoName: String(eventData.repoFullName || "").split("/")[1] || "repo",
+          repoFullName: String(eventData.repoFullName || ""),
+          title: String(eventData.message || ""),
+          subtitle: eventData.branch ? `branch ${eventData.branch}` : undefined,
+          url: String(eventData.url || "#"),
+          authorName: String(eventData.authorName || "Unknown"),
+          authorLogin: (eventData.authorLogin as string) || null,
+          authorAvatar: (eventData.authorAvatar as string) || null,
+          timestamp: (eventData.committedAt as string) || new Date().toISOString(),
+        };
+
+        setData((prev) => {
+          if (!prev) return prev;
+          const dateKey = new Date().toISOString().split("T")[0];
+          const newHeatmap = { ...prev.heatmap, [dateKey]: (prev.heatmap[dateKey] || 0) + 1 };
+
+          return {
+            ...prev,
+            summary: {
+              ...prev.summary,
+              commits7Days: prev.summary.commits7Days + 1,
+            },
+            activityFeed: [newActivity, ...prev.activityFeed.slice(0, 24)],
+            heatmap: newHeatmap,
+          };
+        });
+      } else if (type === "pr.updated") {
+        showToast(`Pull Request diupdate: #${eventData.number} ${eventData.title}`);
+        sendDesktopNotification(`🔀 Pull Request: #${eventData.number}`, {
+          body: `${eventData.title} (${eventData.state})`,
+        });
+        fetchDashboardData();
+      } else if (type === "issue.updated") {
+        showToast(`Issue diupdate: #${eventData.number} ${eventData.title}`);
+        sendDesktopNotification(`⚠️ Issue: #${eventData.number}`, {
+          body: `${eventData.title} (${eventData.state})`,
+        });
+        fetchDashboardData();
+      } else if (type === "workflow.updated") {
+        showToast(`GitHub Actions selesai: ${eventData.name} (${eventData.status})`);
+        sendDesktopNotification(`⚙️ GitHub Actions: ${eventData.name}`, {
+          body: `Status: ${eventData.status} ${eventData.conclusion ? `(${eventData.conclusion})` : ""}`,
+        });
+        fetchDashboardData();
+      } else if (type === "repo.updated") {
+        fetchDashboardData();
+      }
+    },
+    [fetchDashboardData, soundEnabled],
+  );
+
+  // SSE stream connection with auto-reconnect & auto-refetch
+  const { status } = useEventStream({
+    onEvent: handleRealtimeEvent,
+    onReconnect: fetchDashboardData,
+  });
+
+  // Manual sync trigger
+  const handleSync = async () => {
+    if (!isAdmin) {
+      setIsAdminLoginModalOpen(true);
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/sync", { method: "POST" });
+      const json = await res.json();
+      if (res.ok) {
+        showToast(`Sync selesai: ${json.stats?.reposProcessed ?? 0} repo diproses.`, "success");
+        await fetchDashboardData();
+      } else {
+        if (res.status === 401) {
+          setIsAdmin(false);
+          setIsAdminLoginModalOpen(true);
+          showToast("Sesi admin telah berakhir. Silakan login kembali.", "info");
+        } else {
+          showToast(`Sync gagal: ${json.error || "Terjadi kesalahan"}`, "info");
+        }
+      }
+    } catch {
+      showToast("Gagal menyambung ke server sync.", "info");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Toggle repository pin status
+  const handleTogglePin = async (repoId: string, currentPinned: boolean) => {
+    if (!isAdmin) {
+      setIsAdminLoginModalOpen(true);
+      return;
+    }
+
+    // 1. Optimistic update
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        repositories: prev.repositories.map((r) =>
+          r.id === repoId ? { ...r, isPinned: !currentPinned } : r,
+        ),
+      };
+    });
+
+    if (selectedRepo && selectedRepo.id === repoId) {
+      setSelectedRepo((prev) => (prev ? { ...prev, isPinned: !currentPinned } : null));
+    }
+
+    try {
+      const res = await fetch(`/api/repos/${repoId}/pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPinned: !currentPinned }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Gagal mengubah status sematan");
+      }
+      setToast({
+        message:
+          json.message ||
+          (!currentPinned ? "Repositori berhasil disematkan" : "Sematan repositori dilepas"),
+        type: "success",
+      });
+    } catch {
+      // Revert optimistic update on failure
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          repositories: prev.repositories.map((r) =>
+            r.id === repoId ? { ...r, isPinned: currentPinned } : r,
+          ),
+        };
+      });
+      if (selectedRepo && selectedRepo.id === repoId) {
+        setSelectedRepo((prev) => (prev ? { ...prev, isPinned: currentPinned } : null));
+      }
+      setToast({
+        message: "Gagal menyimpan perubahan sematan ke server",
+        type: "info",
+      });
+    }
+  };
+
+  // Extract user info for sidebar
+  const userProfile = useMemo(() => {
+    const firstWithAvatar = data?.activityFeed.find((a) => a.authorAvatar);
+    return {
+      name: firstWithAvatar?.authorName || "Ajimukti Laksono",
+      avatar: firstWithAvatar?.authorAvatar || null,
+    };
+  }, [data]);
+
+  // Smooth scroll handler for sidebar navigation
+  const handleSelectSection = (section: NavSection) => {
+    setActiveSection(section);
+    const targetElement = document.getElementById(section);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="relative min-h-screen text-[var(--text-primary)] transition-colors">
+      {/* Living Dynamic Circuit Grid Background (Day/Night reactive) */}
+      <CircuitGridBackground isDarkMode={mounted ? theme === "dark" : true} />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 py-3.5 px-4.5 rounded-2xl bg-[var(--bg-card)] text-[var(--text-primary)] shadow-2xl border border-[var(--border-main)] backdrop-blur-xl animate-slide-down">
+          <BellRing className="w-4 h-4 text-[#5c62ec] shrink-0" />
+          <span className="text-xs font-semibold max-w-sm">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* 1. Sidebar Component (Fixed on desktop, drawer on mobile) */}
+      <Sidebar
+        activeSection={activeSection}
+        onSelectSection={handleSelectSection}
+        repoCount={data?.repositories.length ?? 0}
+        userName={userProfile.name}
+        userAvatar={userProfile.avatar}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Main Content Area (Offset for floating sidebar on desktop) */}
+      <div className="lg:pl-72 flex flex-col min-h-screen relative z-10">
+        {/* Navigation Bar */}
+        <Navbar
+          status={status}
+          lastSyncTime={data?.summary.lastSyncTime ?? null}
+          onSync={handleSync}
+          isSyncing={isSyncing}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onSetTheme={handleSetTheme}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
+          mounted={mounted}
+          onOpenWebhookModal={() => setIsWebhookModalOpen(true)}
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
+          notificationsEnabled={notificationsEnabled}
+          onRequestNotifications={handleRequestNotifications}
+          isAdmin={isAdmin}
+          onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
+          onLogout={handleLogout}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        {/* Dashboard Main View */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Section: Overview (Summary Metric Cards) */}
+          <section id="overview" className="scroll-mt-24">
+            <SummaryCards
+              summary={
+                data?.summary ?? {
+                  totalRepos: 0,
+                  commits7Days: 0,
+                  openPrs: 0,
+                  openIssues: 0,
+                  latestCiStatus: "unknown",
+                }
+              }
+              isLoading={isLoading}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          </section>
+
+          {/* Section: Analytics (Live Analytics Area Chart & Language Donut) */}
+          <section id="analytics" className="scroll-mt-24">
+            <ChartsSection
+              dailyCommits={data?.charts.dailyCommits ?? []}
+              languages={data?.charts.languages ?? []}
+              isLoading={isLoading}
+              theme={theme}
+            />
+          </section>
+
+          {/* Section: Heatmap (12-month GitHub Commit Heatmap) */}
+          <section id="heatmap" className="scroll-mt-24">
+            <CommitHeatmap data={data?.heatmap ?? {}} isLoading={isLoading} />
+          </section>
+
+          {/* Section: Live Activity Feed (Real-time SSE event stream) */}
+          <section id="feed" className="scroll-mt-24">
+            <LiveActivityFeed activities={data?.activityFeed ?? []} isLoading={isLoading} />
+          </section>
+
+          {/* Section: Repositories (Searchable, filterable repo cards) */}
+          <section id="repositories" className="scroll-mt-24">
+            <RepoList
+              repositories={data?.repositories ?? []}
+              onSelectRepo={(repo) => setSelectedRepo(repo)}
+              onTogglePin={handleTogglePin}
+              isLoading={isLoading}
+            />
+          </section>
+        </main>
+
+        {/* Repository Detail Modal */}
+        <RepoDetailModal
+          repo={selectedRepo}
+          onClose={() => setSelectedRepo(null)}
+          onTogglePin={handleTogglePin}
+          onWebhookConfigured={fetchDashboardData}
+        />
+
+        {/* Webhook Diagnostics & Test Simulator Modal */}
+        <WebhookModal
+          isOpen={isWebhookModalOpen}
+          onClose={() => setIsWebhookModalOpen(false)}
+          onEventSimulated={fetchDashboardData}
+        />
+
+        {/* Admin Login Modal (Hybrid Mode) */}
+        <AdminLoginModal
+          isOpen={isAdminLoginModalOpen}
+          onClose={() => setIsAdminLoginModalOpen(false)}
+          onSuccess={() => {
+            setIsAdmin(true);
+            showToast("Mode Admin aktif! Akses kontrol penuh terbuka.", "success");
+          }}
+        />
+
+        {/* Footer */}
+        <footer className="border-t border-[var(--border-main)] py-6 text-center text-xs text-[var(--text-secondary)] font-medium">
+          <p>Personal Project Dashboard • Terhubung real-time ke akun GitHub Anda.</p>
+        </footer>
+      </div>
     </div>
   );
 }

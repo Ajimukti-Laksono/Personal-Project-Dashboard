@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  id            BigInt   @id // GitHub repo ID
+  name          String
+  fullName      String   @unique
+  description   String?
+  language      String?
+  stars         Int      @default(0)
+  forks         Int      @default(0)
+  openIssues    Int      @default(0)
+  isPrivate     Boolean  @default(false)
+  isArchived    Boolean  @default(false)
+  isPinned      Boolean  @default(false)
+  defaultBranch String   @default("main")
+  htmlUrl       String
+  pushedAt      DateTime?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  commits      Commit[]
+  pullRequests PullRequest[]
+  issues       Issue[]
+  workflowRuns WorkflowRun[]
+}
+
+model Commit {
+  id           Int      @id @default(autoincrement())
+  sha          String
+  repoId       BigInt
+  message      String
+  authorName   String
+  authorLogin  String?
+  authorAvatar String?
+  url          String
+  branch       String?
+  committedAt  DateTime
+  createdAt    DateTime @default(now())
+
+  repo Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([sha, repoId])
+  @@index([repoId, committedAt])
+}
+
+model PullRequest {
+  id        BigInt    @id // GitHub PR ID (node_id or id)
+  repoId    BigInt
+  number    Int
+  title     String
+  state     String   // open, closed
+  merged    Boolean  @default(false)
+  author    String
+  url       String
+  createdAt DateTime
+  updatedAt DateTime
+  closedAt  DateTime?
+
+  repo Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, number])
+  @@index([repoId, state])
+}
+
+model Issue {
+  id        BigInt    @id // GitHub Issue ID
+  repoId    BigInt
+  number    Int
+  title     String
+  state     String   // open, closed
+  author    String
+  labels    String   @default("[]") // JSON array of label names
+  url       String
+  createdAt DateTime
+  updatedAt DateTime
+  closedAt  DateTime?
+
+  repo Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, number])
+  @@index([repoId, state])
+}
+
+model WorkflowRun {
+  id         BigInt    @id // GitHub Workflow Run ID
+  repoId     BigInt
+  name       String
+  branch     String?
+  status     String   // queued, in_progress, completed
+  conclusion String?  // success, failure, cancelled, etc.
+  url        String
+  startedAt  DateTime?
+  updatedAt  DateTime
+
+  repo Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@index([repoId, updatedAt])
+}
+
+model WebhookDelivery {
+  deliveryId String   @id @unique
+  event      String
+  receivedAt DateTime @default(now())
+}
+
+model SyncState {
+  key       String   @id @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

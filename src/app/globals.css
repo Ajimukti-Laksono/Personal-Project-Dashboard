@@ -1,26 +1,230 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light Mode Colors (Day Mode Circuit Theme) */
+  --bg-main: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-sidebar: rgba(255, 255, 255, 0.94);
+  --border-main: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  --accent-primary: #5c62ec;
+  --accent-hover: #4e53db;
+  --accent-soft: rgba(92, 98, 236, 0.08);
+  --accent-border: rgba(92, 98, 236, 0.2);
+
+  --card-shadow: 0 4px 20px -2px rgba(90, 105, 140, 0.06), 0 2px 6px -1px rgba(90, 105, 140, 0.04);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+.dark {
+  /* Dark Mode Colors (Deep midnight navy circuit theme) */
+  --bg-main: #090d16;
+  --bg-card: rgba(19, 25, 38, 0.85);
+  --bg-sidebar: rgba(16, 21, 34, 0.92);
+  --border-main: #1d2538;
+  --border-subtle: #171f30;
+  --text-primary: #f8fafc;
+  --text-secondary: #8b9bb4;
+  --text-muted: #5e6f88;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --accent-primary: #6c72f6;
+  --accent-hover: #7b81f8;
+  --accent-soft: rgba(108, 114, 246, 0.15);
+  --accent-border: rgba(108, 114, 246, 0.3);
+
+  --card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35), 0 2px 8px -1px rgba(0, 0, 0, 0.25);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+  overflow-x: clip;
 }
+
+/* Card Surface Utility */
+.card-surface {
+  background-color: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-main);
+  box-shadow: var(--card-shadow);
+  border-radius: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-surface:hover {
+  border-color: var(--accent-border);
+}
+
+/* Sidebar Surface */
+.sidebar-surface {
+  background-color: var(--bg-sidebar);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--border-main);
+}
+
+/* Custom Day/Night Toggle Switch (FieldPro style) */
+.mode-toggle-track {
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .mode-toggle-track {
+  background: #171f30;
+  border-color: #26334d;
+}
+
+/* Slide in animation for new activity feed items */
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+    background-color: var(--accent-soft);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulse glow for live indicator */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.25);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom smooth scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d9e6;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #232c40;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8b5c9;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #33405c;
+}
+
+/* 3D Coin Spin Animation (Berputar ke belakang secara 3D) */
+@keyframes coinSpin3D {
+  0% {
+    transform: perspective(700px) rotateX(10deg) rotateY(0deg);
+  }
+  50% {
+    transform: perspective(700px) rotateX(10deg) rotateY(-180deg) scale(0.96);
+  }
+  100% {
+    transform: perspective(700px) rotateX(10deg) rotateY(-360deg);
+  }
+}
+
+.animate-coin-spin {
+  animation: coinSpin3D 6.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-style: preserve-3d;
+}
+
+/* Efek Berkilau Logo: Shimmer Sheen Sweep */
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-100px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  32% {
+    transform: translateX(180px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(180px);
+    opacity: 0;
+  }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmerSweep 4.2s ease-in-out infinite;
+}
+
+/* Efek Berkilau Logo: Bintang Glint Twinkle */
+@keyframes sparkleGlitter {
+  0%,
+  100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.18) rotate(45deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.9) rotate(90deg);
+    opacity: 0.95;
+  }
+  45% {
+    transform: scale(0) rotate(135deg);
+    opacity: 0;
+  }
+}
+
+.animate-sparkle-1 {
+  animation: sparkleGlitter 4s ease-in-out infinite 0.3s;
+}
+
+.animate-sparkle-2 {
+  animation: sparkleGlitter 4s ease-in-out infinite 1.3s;
+}
+
+.animate-sparkle-3 {
+  animation: sparkleGlitter 4s ease-in-out infinite 2.3s;
+}
+
+.animate-sparkle-4 {
+  animation: sparkleGlitter 4s ease-in-out infinite 3.3s;
+}
+
+
