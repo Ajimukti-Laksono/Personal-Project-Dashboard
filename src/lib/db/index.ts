@@ -18,6 +18,7 @@ function createPrismaClient(): PrismaClient {
     const adapter = new PrismaLibSQL({
       url: tursoUrl,
       authToken: tursoAuthToken,
+      intMode: "bigint",
     });
     return new PrismaClient({
       adapter,
