@@ -24,6 +24,8 @@ import { ActivityItem } from "@/app/api/dashboard/route";
 import { BellRing, X } from "lucide-react";
 
 interface DashboardData {
+  githubUsername?: string;
+  githubUrl?: string;
   summary: {
     totalRepos: number;
     commits7Days: number;
@@ -350,9 +352,13 @@ export default function DashboardPage() {
   // Extract user info for sidebar
   const userProfile = useMemo(() => {
     const firstWithAvatar = data?.activityFeed.find((a) => a.authorAvatar);
+    const repoOwner = data?.repositories[0]?.fullName?.split("/")[0];
+    const username =
+      data?.githubUsername || firstWithAvatar?.authorLogin || repoOwner || "Ajimukti-Laksono";
     return {
-      name: firstWithAvatar?.authorName || "Ajimukti Laksono",
+      name: firstWithAvatar?.authorName || username || "Ajimukti Laksono",
       avatar: firstWithAvatar?.authorAvatar || null,
+      githubUrl: data?.githubUrl || `https://github.com/${username}`,
     };
   }, [data]);
 
@@ -391,6 +397,7 @@ export default function DashboardPage() {
         repoCount={data?.repositories.length ?? 0}
         userName={userProfile.name}
         userAvatar={userProfile.avatar}
+        githubUrl={userProfile.githubUrl}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isAdmin={isAdmin}

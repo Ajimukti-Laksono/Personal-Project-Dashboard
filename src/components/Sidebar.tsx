@@ -10,6 +10,7 @@ import {
   LogIn,
   X,
   User,
+  ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,7 @@ interface SidebarProps {
   repoCount: number;
   userName?: string;
   userAvatar?: string | null;
+  githubUrl?: string;
   isOpen: boolean;
   onClose: () => void;
   isAdmin?: boolean;
@@ -37,6 +39,7 @@ export function Sidebar({
   repoCount,
   userName = "Ajimukti Laksono",
   userAvatar,
+  githubUrl,
   isOpen,
   onClose,
   isAdmin = false,
@@ -176,7 +179,13 @@ export function Sidebar({
         {/* Bottom: User Profile Card (Just like Image 1 & 2) */}
         <div className="p-4 border-t border-[var(--border-main)]">
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-main)]">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <a
+              href={githubUrl || "https://github.com/Ajimukti-Laksono"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 min-w-0 flex-1 group hover:opacity-95 transition-all cursor-pointer mr-2"
+              title="Buka profil GitHub"
+            >
               {userAvatar ? (
                 <Image
                   src={userAvatar}
@@ -184,15 +193,20 @@ export function Sidebar({
                   width={34}
                   height={34}
                   unoptimized
-                  className="w-8.5 h-8.5 rounded-xl object-cover border border-[var(--border-main)] shrink-0"
+                  className="w-8.5 h-8.5 rounded-xl object-cover border border-[var(--border-main)] shrink-0 group-hover:ring-2 group-hover:ring-[#5c62ec]/60 transition-all"
                 />
               ) : (
-                <div className="w-8.5 h-8.5 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center text-[#5c62ec] shrink-0">
+                <div className="w-8.5 h-8.5 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center text-[#5c62ec] shrink-0 group-hover:ring-2 group-hover:ring-[#5c62ec]/60 transition-all">
                   <User className="w-4 h-4" />
                 </div>
               )}
-              <div className="min-w-0">
-                <p className="text-xs font-bold truncate text-[var(--text-primary)]">{userName}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-bold truncate text-[var(--text-primary)] group-hover:text-[#5c62ec] transition-colors">
+                    {userName}
+                  </p>
+                  <ExternalLink className="w-3 h-3 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 group-hover:text-[#5c62ec] transition-all shrink-0" />
+                </div>
                 <p
                   className={`text-[10px] font-medium flex items-center gap-1 ${
                     isAdmin
@@ -208,7 +222,7 @@ export function Sidebar({
                   {isAdmin ? "Mode Admin Aktif" : "GitHub Pro"}
                 </p>
               </div>
-            </div>
+            </a>
 
             <button
               type="button"

@@ -240,7 +240,10 @@ export async function GET(): Promise<NextResponse> {
       }))
       .sort((a, b) => b.count - a.count);
 
+    const githubUsername = process.env.GITHUB_USERNAME || "Ajimukti-Laksono";
     const responseData = {
+      githubUsername,
+      githubUrl: `https://github.com/${githubUsername}`,
       summary: {
         totalRepos,
         commits7Days,
